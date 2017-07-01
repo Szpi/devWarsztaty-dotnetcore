@@ -1,0 +1,27 @@
+version: "2"
+
+services: 
+  start_dependencies:
+    image: dadarek/wait-for-dependencies
+    depends_on:
+      - rabbitmq
+    command: rabbitmq:5672
+
+  api:
+    image: szpi/fibon-api:latest
+    links:
+       - rabbitmq
+    ports:
+      - '5000:5000'
+
+  service:
+    image: szpi/fibon-service:latest
+    links:
+       - rabbitmq
+    ports:
+      - '5050:5050'
+
+  rabbitmq:
+    image: rabbitmq:latest
+    ports: 
+      - '5672:5672'
