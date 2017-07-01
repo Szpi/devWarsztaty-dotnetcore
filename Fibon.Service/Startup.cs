@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Fibon.Messages.Commands;
 using Fibon.Service.Framework;
+using Fibon.Service.Handlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -34,7 +36,19 @@ namespace Fibon.Service
             services.AddMvc();
             services.Configure<RabbitMqOptions>(Configuration.GetSection("rabbitmq"));
 
-            ConfigureRabbitMq(services);
+            ConfigureRabbitMq(services);            
+        }
+
+        private void ConfigurationRabbitMqSubscribtions(IApplicationBuilder app)
+        {
+           var client = app.ApplicationServices.GetService<IBusClient>();
+            var handler = app.ApplicationServices.GetService<ICommandHandler<CalculateValueCommand>>();
+
+            client.SubscribeAsync<CalculateValueCommand>(async (msg,context)=>
+            {
+                await handler.HandleAsync(msg);
+            }           
+            );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,6 +58,7 @@ namespace Fibon.Service
             loggerFactory.AddDebug();
 
             app.UseMvc();
+            ConfigurationRabbitMqSubscribtions(app);
         }
 
         private void ConfigureRabbitMq(IServiceCollection services)
@@ -56,6 +71,7 @@ namespace Fibon.Service
             var client = BusClientFactory.CreateDefault(options);
 
             services.AddSingleton<IBusClient>(_ => client);
+            services.AddScoped<ICommandHandler<CalculateValueCommand>,CalculatedValueCommandHandler>();
         }
     }
 }
